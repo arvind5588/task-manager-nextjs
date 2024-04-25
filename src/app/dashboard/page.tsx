@@ -8,7 +8,7 @@ import { ToastContainer, toast } from "react-toastify";
 import { useAuth } from '@/lib/auth';
 import { NavItem } from '@/components/nav-item';
 
-const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+const baseUrl = process.env.BASE_URL;
 export const getAllTaskListing = async (token: string): Promise<any[]> => {
   const res = await fetch(`${baseUrl}/tasks`, {
     method: "GET",
@@ -64,18 +64,24 @@ export default function RootLayout() {
   }, []);
 
   React.useEffect(() => {
-    const fetchTodos = async () => {
+    const fetchTaskList = async () => {
       if (token) {
         try {
-          const todos = await getAllTaskListing(token);
-          setMyTaskList(todos);
+          const tasks = await getAllTaskListing(token);
+          // checks if task holds the object of array
+          if (Array.isArray(tasks) && tasks.length > 0 && typeof tasks[0] === 'object') {
+            setMyTaskList(tasks);
+          }else{
+            setMyTaskList([]);
+            handleFailure({msg : "Something went wrong while fetching the data. Please login again."});
+          }
         } catch (error) {
           console.error("Error fetching todos:", error);
         }
       }
     };
     if (token) {
-      fetchTodos();
+      fetchTaskList();
     }
   }, [token]);
 
@@ -99,8 +105,8 @@ export default function RootLayout() {
     });
   };
 
-  const handleFailure = () => {
-    toast.error("Failed to add task!", {
+  const handleFailure = (obj : any) => {
+    toast.error(obj.msg, {
       position: "top-center",
       autoClose: 3000,
       hideProgressBar: true,

@@ -7,7 +7,7 @@ import React, { useState, FormEvent } from 'react'
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+const baseUrl = process.env.BASE_URL;
 export default function Register() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState<boolean>(false)
