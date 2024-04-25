@@ -1,17 +1,15 @@
 'use client';
+import 'react-toastify/dist/ReactToastify.css';
 import React from "react";
 import Link from "next/link";
 import Cookies from "js-cookie";
-import TaskCard from "../task-card";
+import TaskCard from "@/components/task-card";
 import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { useAuth } from '../../lib/auth';
-
-import { config } from 'dotenv';
-config();
+import { useAuth } from '@/lib/auth';
+import { NavItem } from '@/components/nav-item';
 
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-export const getAllTodos = async (token: string): Promise<any[]> => {
+export const getAllTaskListing = async (token: string): Promise<any[]> => {
   const res = await fetch(`${baseUrl}/tasks`, {
     method: "GET",
     headers: {
@@ -45,6 +43,7 @@ export default function RootLayout() {
   const [loading, setLoading] = React.useState<boolean>(true);
   const [showPopup, setShowPopup] = React.useState<boolean>(false);
   const { getToken, logout } = useAuth();
+  const statusOptions = ["pending", "in_progress", "done"];
 
   React.useEffect(() => {
     const token = getToken();
@@ -52,6 +51,33 @@ export default function RootLayout() {
       logout();
     }
   }, [getToken, logout]);
+
+  React.useEffect(() => {
+    const fetchToken = async () => {
+      const tokenFromCookie = Cookies.get("token");
+      if (tokenFromCookie) {
+        setToken(tokenFromCookie);
+      }
+      setLoading(false);
+    };
+    fetchToken();
+  }, []);
+
+  React.useEffect(() => {
+    const fetchTodos = async () => {
+      if (token) {
+        try {
+          const todos = await getAllTaskListing(token);
+          setMyTaskList(todos);
+        } catch (error) {
+          console.error("Error fetching todos:", error);
+        }
+      }
+    };
+    if (token) {
+      fetchTodos();
+    }
+  }, [token]);
 
   const [newTaskData, setNewTaskData] = React.useState<{ title: string; description: string; status: string }>({
     title: "",
@@ -81,40 +107,8 @@ export default function RootLayout() {
     });
   };
 
-  const statusOptions = ["pending", "in_progress", "done"];
-
-  React.useEffect(() => {
-    const fetchToken = async () => {
-      const tokenFromCookie = Cookies.get("token");
-      if (tokenFromCookie) {
-        setToken(tokenFromCookie);
-      }
-      setLoading(false);
-    };
-
-    fetchToken();
-  }, []);
-
-  React.useEffect(() => {
-    const fetchTodos = async () => {
-      if (token) {
-        try {
-          const todos = await getAllTodos(token);
-          setMyTaskList(todos);
-        } catch (error) {
-          console.error("Error fetching todos:", error);
-          // Handle error
-        }
-      }
-    };
-
-    if (token) {
-      fetchTodos();
-    }
-  }, [token]);
-
   const handleNewTaskClick = () => {
-    setShowPopup(true); // Show popup when "New Task" button is clicked
+    setShowPopup(true);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -158,11 +152,10 @@ export default function RootLayout() {
           status: "",
         });
         setShowPopup(false);
-        const updatedTaskList = await getAllTodos(token!);
+        const updatedTaskList = await getAllTaskListing(token!);
         setMyTaskList(updatedTaskList);
       } catch (error) {
         console.error("Error creating task:");
-        // Show failed message to the user (you can implement this part)
       }
     }
   };
@@ -193,17 +186,11 @@ export default function RootLayout() {
   const handleUpdateTaskList = async (token : any) => {
     try {
       handleSuccess({msg : "Task has been updated successfully."});
-      const updatedTaskList = await getAllTodos(token);
+      const updatedTaskList = await getAllTaskListing(token);
       setMyTaskList(updatedTaskList);
     } catch (error) {
       console.error('Error fetching updated task list:', error);
     }
-  };
-
-  const handleLogout = () => {
-    Cookies.remove('token');
-    setToken(null)
-    window.location.href = '/login';
   };
 
   if (loading) {
@@ -221,7 +208,10 @@ export default function RootLayout() {
           </div>
           <div className="flex-1 overflow-auto py-2">
             <nav className="grid items-start px-4 text-sm font-medium">
-              {/* Add your navigation items here */}
+              <NavItem href="/dashboard">Home</NavItem>
+              <NavItem href="/dashboard">About</NavItem>
+              <NavItem href="/dashboard">Services</NavItem>
+              <NavItem href="/dashboard">Contact</NavItem>
             </nav>
           </div>
         </div>
@@ -229,8 +219,8 @@ export default function RootLayout() {
       <div className="flex flex-col">
         <header className="flex h-14 lg:h-[60px] items-center gap-4 border-b bg-gray-100/40 px-6 dark:bg-gray-800/40 justify-between lg:justify-end">
           {token ? (
-              <button className="text-blue-500 hover:underline" onClick={handleLogout}>
-                Logout
+              <button className="text-blue-500 hover:underline" onClick={logout}>
+              Hi there! Logout
               </button>
             ) : (
               <Link href="/login">
@@ -281,10 +271,9 @@ export default function RootLayout() {
                   />
                   {formErrors.description && <p className="text-red-500 text-sm mt-1">{formErrors.description}</p>}
                 </div>
+
                 <div className="mb-4">
-                  <label htmlFor="status" className="block text-sm font-medium text-gray-700">
-                    Status
-                  </label>
+                  <label htmlFor="status" className="block text-sm font-medium text-gray-700"> Status </label>
                   <select
                     id="status"
                     name="status"
@@ -303,22 +292,15 @@ export default function RootLayout() {
                   </select>
                   {formErrors.status && <p className="text-red-500 text-sm mt-1">{formErrors.status}</p>}
                 </div>
+
                 <div className="flex justify-end">
-                  <button
-                    className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
-                    onClick={() => setShowPopup(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button className="bg-green-500 text-white px-4 py-2 rounded" onClick={handleAddTask}>
-                    Add Task
-                  </button>
+                  <button className="bg-green-500 text-white px-4 py-2 rounded mr-2" onClick={handleAddTask}> Add Task </button>
+                  <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setShowPopup(false)} > Cancel </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Add your content here */}
           {myTaskList.map((task) => (
             <TaskCard key={task.id} task={task} onDelete={handleDeleteTask} onUpdate={handleUpdateTaskList} />
           ))}

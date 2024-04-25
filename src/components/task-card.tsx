@@ -15,7 +15,9 @@ interface TaskCardProps {
     onUpdate: (taskId: string) => void;
 }
 
+const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 const TaskCard: React.FC<TaskCardProps> = ({ task, onDelete, onUpdate }) => {
+
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(task.title);
   const [editedDescription, setEditedDescription] = useState(task.description);
@@ -59,7 +61,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onDelete, onUpdate }) => {
           throw new Error('Token not found');
         }
 
-        const response = await fetch(`http://localhost:3000/tasks/${task.id}`, {
+        const response = await fetch(`${baseUrl}/tasks/${task.id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -73,14 +75,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onDelete, onUpdate }) => {
         });
         if (response.ok) {
             setIsEditing(false);
-            // Call callback function to refresh task list in RootLayout
             onUpdate(token);
         } else {
           throw new Error('Failed to update task');
         }
       } catch (error) {
         console.error('Error updating task:', error);
-        // Handle error
       }
     }
   };
